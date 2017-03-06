@@ -4,15 +4,18 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.NotDirectoryException;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.text.Format;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.Property;
@@ -25,6 +28,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
@@ -39,13 +43,15 @@ public class TimelapseApp extends Application {
 	private static final DecimalFormat INTEGER_FORMAT = new DecimalFormat("##0");
 
 	private StringProperty imageDirectoryProperty = new SimpleStringProperty();
-	private StringProperty imagePatternProperty = new SimpleStringProperty("IMG_%04d.JPG");
+	private StringProperty imagePatternProperty = new SimpleStringProperty();
 	private IntegerProperty imageStartNumberProperty = new SimpleIntegerProperty();
 	private StringProperty outputDirectoryProperty = new SimpleStringProperty();
 	private StringProperty videoFileNameProperty = new SimpleStringProperty("output.mp4");
 
+	private StringProperty inputValidationMessage = new SimpleStringProperty();
+	
 	private StringProperty commandProperty = new SimpleStringProperty();
-	private StringProperty commandOutputProperty = new SimpleStringProperty();
+	private TextArea commandOutputTextArea;
 
 	private Stage primaryStage;
 	
@@ -77,6 +83,7 @@ public class TimelapseApp extends Application {
         runButton.addEventHandler(ActionEvent.ACTION, event -> {
         	List<String> command = new ArrayList<>();
         	command.add("ffmpeg");
+        	command.add("-y");
         	command.add("-r");
         	command.add("1");
         	command.add("-start_number");
@@ -99,7 +106,7 @@ public class TimelapseApp extends Application {
         	command.add(videoFileNameProperty.get());
 
         	commandProperty.set(command.toString());
-        	runCommand(command, commandOutputProperty);
+        	runCommand(command, commandOutputTextArea);
         });
         
         return toolbarFlowPane;
@@ -114,17 +121,59 @@ public class TimelapseApp extends Application {
         addDirectoryChooser(gridPane, rowIndex++, "Image Directory", imageDirectoryProperty);
         addTextField(gridPane, rowIndex++, "Image Pattern", imagePatternProperty);
         addTextField(gridPane, rowIndex++, "Image Start Number", imageStartNumberProperty, INTEGER_FORMAT);
+        addLabel(gridPane, rowIndex++, "Input Info", inputValidationMessage);
         addDirectoryChooser(gridPane, rowIndex++, "Output Directory", outputDirectoryProperty);
         addTextField(gridPane, rowIndex++, "Output Video File", videoFileNameProperty);
 
         addTextArea(gridPane, rowIndex++, "Command", commandProperty, 1);
-        addTextArea(gridPane, rowIndex++, "Command Output", commandOutputProperty, 10);
 
+        {
+	        gridPane.add(new Text("Command Output"), 0, rowIndex);
+	
+	        commandOutputTextArea = new TextArea();
+	        commandOutputTextArea.setPrefRowCount(10);
+	        commandOutputTextArea.setScrollTop(Double.MAX_VALUE);
+	        gridPane.add(commandOutputTextArea, 1, rowIndex);
+	        rowIndex++;
+        }
+        
         imageDirectoryProperty.addListener(changeEvent -> {
-        	
+        	updateImageDirectory();
         });
         
 		return gridPane;
+	}
+
+	private void updateImageDirectory() {
+		Path directoryPath = Paths.get(imageDirectoryProperty.get());
+		Integer lowestNumber = null;
+		String filePattern = null;
+		int imageCount = 0;
+		
+		try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath, "*.jpg")) {
+			for (Path filePath : directoryStream) {
+				ImageFilenameParser parser = new ImageFilenameParser(filePath.getFileName().toString());
+				if (parser.isValid()) {
+					if (lowestNumber == null || parser.getNumber() < lowestNumber) {
+						lowestNumber = parser.getNumber();
+						filePattern = parser.getFilePattern();
+					}
+					if (parser.getFilePattern().equals(filePattern)) {
+						imageCount++;
+					}
+				}
+			}
+			
+			if (lowestNumber != null) {
+				imagePatternProperty.set(filePattern);
+				imageStartNumberProperty.set(lowestNumber);
+				inputValidationMessage.set(imageCount + " images found.");
+			}
+		} catch (NotDirectoryException e) {
+			inputValidationMessage.set("Not a directory: " + directoryPath);
+		} catch (IOException e) {
+			inputValidationMessage.set("Failed to read directory: " + e.getMessage());
+		}
 	}
 
 	private void addTextField(GridPane gridPane, int rowIndex, String label, StringProperty stringProperty) {
@@ -134,7 +183,15 @@ public class TimelapseApp extends Application {
         Bindings.bindBidirectional(textField.textProperty(), stringProperty);
         gridPane.add(textField, 1, rowIndex);
 	}
-	
+
+	private void addLabel(GridPane gridPane, int rowIndex, String label, StringProperty stringProperty) {
+        gridPane.add(new Text(label), 0, rowIndex);
+
+        Text text = new Text();
+        Bindings.bindBidirectional(text.textProperty(), stringProperty);
+        gridPane.add(text, 1, rowIndex);
+	}
+
 	private void addTextArea(GridPane gridPane, int rowIndex, String label, StringProperty stringProperty, int rowCount) {
         gridPane.add(new Text(label), 0, rowIndex);
 
@@ -174,17 +231,17 @@ public class TimelapseApp extends Application {
         });
 	}
 
-	private void runCommand(List<String> command, StringProperty outputProperty) {
+	private void runCommand(List<String> command, TextArea outputTextArea) {
 		new Thread() {
 			@Override
 			public void run() {
-				runCommandInternal(command, outputProperty);
+				runCommandInternal(command, outputTextArea);
 			}
 		}.start();
 	}
 	
-	private void runCommandInternal(List<String> command, StringProperty outputProperty) {
-		outputProperty.set("");
+	private void runCommandInternal(List<String> command, TextArea outputTextArea) {
+		outputTextArea.setText("");
 
 		ProcessBuilder processBuilder = new ProcessBuilder(command);
 		
@@ -193,15 +250,21 @@ public class TimelapseApp extends Application {
 			
 			BufferedReader output = new BufferedReader(new InputStreamReader(process.getInputStream()));
 			BufferedReader error = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+			String line = null;
+
 			while (process.isAlive()) {
-				String line = error.readLine();
-				if (line != null) {
-					append(outputProperty, line + "\n");
+				if (error.ready()) {
+					line = error.readLine();
+					if (line != null) {
+						append(outputTextArea, line + "\n");
+					}
 				}
 
-				line = output.readLine();
-				if (line != null) {
-					append(outputProperty, line + "\n");
+				if (output.ready()) {
+					line = output.readLine();
+					if (line != null) {
+						append(outputTextArea, line + "\n");
+					}
 				}
 				
 				Thread.sleep(1);
@@ -209,17 +272,21 @@ public class TimelapseApp extends Application {
 			
 			int resultCode = process.waitFor();
 			
-			String line = error.readLine();
-			while (line != null) {
-				append(outputProperty, line + "\n");
-				
+			if (error.ready()) {
 				line = error.readLine();
+				while (line != null) {
+					append(outputTextArea, line + "\n");
+					
+					line = error.readLine();
+				}
 			}
 			
-			while (line != null) {
-				append(outputProperty, line + "\n");
-				
-				line = output.readLine();
+			if (output.ready()) {
+				while (line != null) {
+					append(outputTextArea, line + "\n");
+					
+					line = output.readLine();
+				}
 			}
 			
 			System.out.println(resultCode);
@@ -230,8 +297,11 @@ public class TimelapseApp extends Application {
 		}
 	}
 	
-	private void append(StringProperty property, String string) {
-		property.set(property.get() + string);
+	private void append(TextArea outputTextArea, String string) {
+		System.out.println(string);
+		Platform.runLater(() -> {
+			outputTextArea.appendText(string);
+		});
 	}
 
 	public static void main(String[] args) {
