@@ -13,6 +13,7 @@ import java.text.DecimalFormat;
 import java.text.Format;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import ch.obermuhlner.timelapse.CommandExecutor.CommandExecutorListener;
 import javafx.application.Application;
@@ -159,7 +160,13 @@ public class TimelapseApp extends Application {
 	        	command.add(videoFileNameProperty.get());
 	
 	        	commandProperty.set(command.toString());
-	        	runCommand(command, imageDirectoryProperty.get(), commandOutputTextArea);
+	        	
+	        	runButton.setDisable(true);
+	        	runCommand(
+					command,
+					imageDirectoryProperty.get(),
+					(output) -> commandOutputTextArea.appendText(output),
+					(success) -> runButton.setDisable(false));
 	        });
         }
         
@@ -264,34 +271,25 @@ public class TimelapseApp extends Application {
         });
 	}
 
-	private void runCommand(List<String> command, String directory, TextArea outputTextArea) {
-		new Thread() {
-			@Override
-			public void run() {
-				runCommandInternal(command, directory, outputTextArea);
-			}
-		}.start();
-	}
-	
-	private void runCommandInternal(List<String> command, String directory, TextArea outputTextArea) {
+	private void runCommand(List<String> command, String directory, Consumer<String> outputConsumer, Consumer<Boolean> finishedConsumer) {
 		CommandExecutor commandExecutor = new CommandExecutor(command, directory, new CommandExecutorListener() {
 			@Override
 			public void addOutput(String output) {
 				Platform.runLater(() -> {
-					outputTextArea.appendText(output);
+					outputConsumer.accept(output);
 				});
 			}
 			
 			@Override
 			public void addError(String error) {
 				Platform.runLater(() -> {
-					outputTextArea.appendText(error);
+					outputConsumer.accept(error);
 				});
 			}
 			
 			@Override
 			public void finished() {
-				
+				finishedConsumer.accept(true);
 			}
 		});
 		
