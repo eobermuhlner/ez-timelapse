@@ -74,9 +74,9 @@ public class CommandExecutor {
 			e.printStackTrace();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
+		} finally {
+			listener.finished();
 		}
-		
-		listener.finished();
 	}
 
 	public static interface CommandExecutorListener {
