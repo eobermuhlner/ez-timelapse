@@ -144,9 +144,6 @@ public class TimelapseApp extends Application {
 	        	command.add(String.valueOf(imageStartNumberProperty.get()));
 	        	command.add("-i");
 	        	String input = "";
-	        	if (imageDirectoryProperty.get() != null && !imageDirectoryProperty.get().isEmpty()) {
-	        		input = imageDirectoryProperty.get() + "/";
-	        	}
 	        	input += imagePatternProperty.get();
 	        	command.add(input);
 	        	command.add("-s");
@@ -160,7 +157,7 @@ public class TimelapseApp extends Application {
 	        	command.add(videoFileNameProperty.get());
 	
 	        	commandProperty.set(command.toString());
-	        	runCommand(command, commandOutputTextArea);
+	        	runCommand(command, imageDirectoryProperty.get(), commandOutputTextArea);
 	        });
         }
         
@@ -265,19 +262,21 @@ public class TimelapseApp extends Application {
         });
 	}
 
-	private void runCommand(List<String> command, TextArea outputTextArea) {
+	private void runCommand(List<String> command, String directory, TextArea outputTextArea) {
 		new Thread() {
 			@Override
 			public void run() {
-				runCommandInternal(command, outputTextArea);
+				runCommandInternal(command, directory, outputTextArea);
 			}
 		}.start();
 	}
 	
-	private void runCommandInternal(List<String> command, TextArea outputTextArea) {
+	private void runCommandInternal(List<String> command, String directory, TextArea outputTextArea) {
 		outputTextArea.setText("");
 
 		ProcessBuilder processBuilder = new ProcessBuilder(command);
+		
+		processBuilder.directory(new File(directory));
 		
 		try {
 			Process process = processBuilder.start();
