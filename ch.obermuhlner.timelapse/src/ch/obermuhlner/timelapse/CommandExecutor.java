@@ -23,11 +23,10 @@ public class CommandExecutor {
 	}
 
 	public void run() {
-		ProcessBuilder processBuilder = new ProcessBuilder(command);
-		
-		processBuilder.directory(new File(directory));
-		
 		try {
+			ProcessBuilder processBuilder = new ProcessBuilder(command);
+			processBuilder.directory(new File(directory));
+			
 			Process process = processBuilder.start();
 			
 			BufferedReader output = new BufferedReader(new InputStreamReader(process.getInputStream()));
