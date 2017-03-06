@@ -14,6 +14,7 @@ import java.text.Format;
 import java.util.ArrayList;
 import java.util.List;
 
+import ch.obermuhlner.timelapse.CommandExecutor.CommandExecutorListener;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -273,70 +274,30 @@ public class TimelapseApp extends Application {
 	}
 	
 	private void runCommandInternal(List<String> command, String directory, TextArea outputTextArea) {
-		outputTextArea.setText("");
-
-		ProcessBuilder processBuilder = new ProcessBuilder(command);
-		
-		processBuilder.directory(new File(directory));
-		
-		try {
-			Process process = processBuilder.start();
+		CommandExecutor commandExecutor = new CommandExecutor(command, directory, new CommandExecutorListener() {
+			@Override
+			public void addOutput(String output) {
+				Platform.runLater(() -> {
+					outputTextArea.appendText(output);
+				});
+			}
 			
-			BufferedReader output = new BufferedReader(new InputStreamReader(process.getInputStream()));
-			BufferedReader error = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-			String line = null;
-
-			while (process.isAlive()) {
-				if (error.ready()) {
-					line = error.readLine();
-					if (line != null) {
-						append(outputTextArea, line + "\n");
-					}
-				}
-
-				if (output.ready()) {
-					line = output.readLine();
-					if (line != null) {
-						append(outputTextArea, line + "\n");
-					}
-				}
+			@Override
+			public void addError(String error) {
+				Platform.runLater(() -> {
+					outputTextArea.appendText(error);
+				});
+			}
+			
+			@Override
+			public void finished() {
 				
-				Thread.sleep(1);
 			}
-			
-			int resultCode = process.waitFor();
-			
-			if (error.ready()) {
-				line = error.readLine();
-				while (line != null) {
-					append(outputTextArea, line + "\n");
-					
-					line = error.readLine();
-				}
-			}
-			
-			if (output.ready()) {
-				while (line != null) {
-					append(outputTextArea, line + "\n");
-					
-					line = output.readLine();
-				}
-			}
-			
-			System.out.println(resultCode);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+		});
+		
+		commandExecutor.runAsync();
 	}
 	
-	private void append(TextArea outputTextArea, String string) {
-		Platform.runLater(() -> {
-			outputTextArea.appendText(string);
-		});
-	}
-
 	public static void main(String[] args) {
 		launch(args);
 	}
