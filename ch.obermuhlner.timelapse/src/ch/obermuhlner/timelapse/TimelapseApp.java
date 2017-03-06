@@ -23,16 +23,16 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
-import javafx.geometry.Orientation;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
+import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
@@ -45,7 +45,6 @@ public class TimelapseApp extends Application {
 	private StringProperty imageDirectoryProperty = new SimpleStringProperty();
 	private StringProperty imagePatternProperty = new SimpleStringProperty();
 	private IntegerProperty imageStartNumberProperty = new SimpleIntegerProperty();
-	private StringProperty outputDirectoryProperty = new SimpleStringProperty();
 	private StringProperty videoFileNameProperty = new SimpleStringProperty("output.mp4");
 
 	private StringProperty inputValidationMessage = new SimpleStringProperty();
@@ -65,54 +64,25 @@ public class TimelapseApp extends Application {
         BorderPane mainBorderPane = new BorderPane();
         root.getChildren().add(mainBorderPane);
 		
-        mainBorderPane.setTop(createToolbar());
-        
-        mainBorderPane.setLeft(createEditor());
+        mainBorderPane.setCenter(createEditor());
                 
 		primaryStage.setScene(scene);
         primaryStage.show();
 	}
 
-	private Node createToolbar() {
-        FlowPane toolbarFlowPane = new FlowPane(Orientation.HORIZONTAL);
-        toolbarFlowPane.setHgap(4);
-        toolbarFlowPane.setVgap(4);
-    
-        Button runButton = new Button("Run");
-        toolbarFlowPane.getChildren().add(runButton);
-        runButton.addEventHandler(ActionEvent.ACTION, event -> {
-        	List<String> command = new ArrayList<>();
-        	command.add("ffmpeg");
-        	command.add("-y");
-        	command.add("-r");
-        	command.add("1");
-        	command.add("-start_number");
-        	command.add(String.valueOf(imageStartNumberProperty.get()));
-        	command.add("-i");
-        	String input = "";
-        	if (imageDirectoryProperty.get() != null && !imageDirectoryProperty.get().isEmpty()) {
-        		input = imageDirectoryProperty.get() + "/";
-        	}
-        	input += imagePatternProperty.get();
-        	command.add(input);
-        	command.add("-s");
-        	command.add("hd1080");
-        	command.add("-vf");
-        	command.add("framerate=fps=30:interp_start=0:interp_end=255:scene=100");        	
-        	command.add("-vcodec");
-        	command.add("mpeg4");
-        	command.add("-q:v");
-        	command.add("1");
-        	command.add(videoFileNameProperty.get());
+	private Node createEditor() {
+        TabPane tabPane = new TabPane();
+        tabPane.setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
 
-        	commandProperty.set(command.toString());
-        	runCommand(command, commandOutputTextArea);
-        });
-        
-        return toolbarFlowPane;
+    	tabPane.getTabs().add(new Tab("Input", createInputTab()));
+    	tabPane.getTabs().add(new Tab("Filter", createFilterTab()));
+    	tabPane.getTabs().add(new Tab("Output", createOutputTab()));
+    	tabPane.getTabs().add(new Tab("Create", createCreateTab()));
+
+        return tabPane;
 	}
 	
-	private Node createEditor() {
+	private Node createInputTab() {
         GridPane gridPane = new GridPane();
         gridPane.setHgap(2);
         gridPane.setVgap(2);
@@ -122,11 +92,79 @@ public class TimelapseApp extends Application {
         addTextField(gridPane, rowIndex++, "Image Pattern", imagePatternProperty);
         addTextField(gridPane, rowIndex++, "Image Start Number", imageStartNumberProperty, INTEGER_FORMAT);
         addLabel(gridPane, rowIndex++, "Input Info", inputValidationMessage);
-        addDirectoryChooser(gridPane, rowIndex++, "Output Directory", outputDirectoryProperty);
+
+        imageDirectoryProperty.addListener(changeEvent -> {
+        	updateImageDirectory();
+        });
+        
+		return gridPane;
+	}
+
+	private Node createFilterTab() {
+        GridPane gridPane = new GridPane();
+        gridPane.setHgap(2);
+        gridPane.setVgap(2);
+        
+        int rowIndex = 0;
+
+        
+        return gridPane;
+	}
+
+	private Node createOutputTab() {
+        GridPane gridPane = new GridPane();
+        gridPane.setHgap(2);
+        gridPane.setVgap(2);
+        
+        int rowIndex = 0;
+
         addTextField(gridPane, rowIndex++, "Output Video File", videoFileNameProperty);
 
-        addTextArea(gridPane, rowIndex++, "Command", commandProperty, 1);
+        return gridPane;
+	}
 
+	private Node createCreateTab() {
+        GridPane gridPane = new GridPane();
+        gridPane.setHgap(2);
+        gridPane.setVgap(2);
+        
+        int rowIndex = 0;
+
+        {
+	        Button runButton = new Button("Run");
+	        gridPane.add(runButton, 1, rowIndex++);
+	        
+	        runButton.addEventHandler(ActionEvent.ACTION, event -> {
+	        	List<String> command = new ArrayList<>();
+	        	command.add("ffmpeg");
+	        	command.add("-y");
+	        	command.add("-r");
+	        	command.add("1");
+	        	command.add("-start_number");
+	        	command.add(String.valueOf(imageStartNumberProperty.get()));
+	        	command.add("-i");
+	        	String input = "";
+	        	if (imageDirectoryProperty.get() != null && !imageDirectoryProperty.get().isEmpty()) {
+	        		input = imageDirectoryProperty.get() + "/";
+	        	}
+	        	input += imagePatternProperty.get();
+	        	command.add(input);
+	        	command.add("-s");
+	        	command.add("hd1080");
+	        	command.add("-vf");
+	        	command.add("framerate=fps=30:interp_start=0:interp_end=255:scene=100");        	
+	        	command.add("-vcodec");
+	        	command.add("mpeg4");
+	        	command.add("-q:v");
+	        	command.add("1");
+	        	command.add(videoFileNameProperty.get());
+	
+	        	commandProperty.set(command.toString());
+	        	runCommand(command, commandOutputTextArea);
+	        });
+        }
+        
+        addTextArea(gridPane, rowIndex++, "Command", commandProperty, 1);
         {
 	        gridPane.add(new Text("Command Output"), 0, rowIndex);
 	
@@ -137,11 +175,7 @@ public class TimelapseApp extends Application {
 	        rowIndex++;
         }
         
-        imageDirectoryProperty.addListener(changeEvent -> {
-        	updateImageDirectory();
-        });
-        
-		return gridPane;
+        return gridPane;
 	}
 
 	private void updateImageDirectory() {
