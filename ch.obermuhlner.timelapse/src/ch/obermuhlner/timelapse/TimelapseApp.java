@@ -46,6 +46,8 @@ public class TimelapseApp extends Application {
 	private StringProperty imagePatternProperty = new SimpleStringProperty();
 	private IntegerProperty imageStartNumberProperty = new SimpleIntegerProperty();
 	private StringProperty videoFileNameProperty = new SimpleStringProperty("output.mp4");
+	private IntegerProperty videoRateProperty = new SimpleIntegerProperty(1);
+	private StringProperty videoResolutionProperty = new SimpleStringProperty();
 
 	private StringProperty inputValidationMessage = new SimpleStringProperty();
 	
@@ -74,9 +76,9 @@ public class TimelapseApp extends Application {
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
 
-    	tabPane.getTabs().add(new Tab("Input", createInputTab()));
+    	tabPane.getTabs().add(new Tab("Images", createInputTab()));
     	tabPane.getTabs().add(new Tab("Filter", createFilterTab()));
-    	tabPane.getTabs().add(new Tab("Output", createOutputTab()));
+    	tabPane.getTabs().add(new Tab("Video", createOutputTab()));
     	tabPane.getTabs().add(new Tab("Create", createCreateTab()));
 
         return tabPane;
@@ -119,6 +121,7 @@ public class TimelapseApp extends Application {
         int rowIndex = 0;
 
         addTextField(gridPane, rowIndex++, "Output Video File", videoFileNameProperty);
+        addTextField(gridPane, rowIndex++, "Frame Rate", videoRateProperty, INTEGER_FORMAT);
 
         return gridPane;
 	}
@@ -139,13 +142,11 @@ public class TimelapseApp extends Application {
 	        	command.add("ffmpeg");
 	        	command.add("-y");
 	        	command.add("-r");
-	        	command.add("1");
+	        	command.add(String.valueOf(videoRateProperty.get()));
 	        	command.add("-start_number");
 	        	command.add(String.valueOf(imageStartNumberProperty.get()));
 	        	command.add("-i");
-	        	String input = "";
-	        	input += imagePatternProperty.get();
-	        	command.add(input);
+	        	command.add(imagePatternProperty.get());
 	        	command.add("-s");
 	        	command.add("hd1080");
 	        	command.add("-vf");
@@ -331,7 +332,6 @@ public class TimelapseApp extends Application {
 	}
 	
 	private void append(TextArea outputTextArea, String string) {
-		System.out.println(string);
 		Platform.runLater(() -> {
 			outputTextArea.appendText(string);
 		});
