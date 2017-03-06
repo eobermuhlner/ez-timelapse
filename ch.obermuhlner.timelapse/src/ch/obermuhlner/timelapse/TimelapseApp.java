@@ -1,9 +1,7 @@
 package ch.obermuhlner.timelapse;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.NotDirectoryException;
@@ -49,7 +47,8 @@ public class TimelapseApp extends Application {
 	private IntegerProperty imageStartNumberProperty = new SimpleIntegerProperty();
 	private StringProperty videoFileNameProperty = new SimpleStringProperty("output.mp4");
 	private IntegerProperty videoRateProperty = new SimpleIntegerProperty(1);
-	private StringProperty videoResolutionProperty = new SimpleStringProperty();
+	private IntegerProperty videoResolutionWidthProperty = new SimpleIntegerProperty(1920);
+	private IntegerProperty videoResolutionHeightProperty = new SimpleIntegerProperty(1080);
 
 	private StringProperty inputValidationMessage = new SimpleStringProperty();
 	
@@ -124,6 +123,8 @@ public class TimelapseApp extends Application {
 
         addTextField(gridPane, rowIndex++, "Output Video File", videoFileNameProperty);
         addTextField(gridPane, rowIndex++, "Frame Rate", videoRateProperty, INTEGER_FORMAT);
+        addTextField(gridPane, rowIndex++, "Video Width", videoResolutionWidthProperty, INTEGER_FORMAT);
+        addTextField(gridPane, rowIndex++, "Video Height", videoResolutionHeightProperty, INTEGER_FORMAT);
 
         return gridPane;
 	}
@@ -150,7 +151,7 @@ public class TimelapseApp extends Application {
 	        	command.add("-i");
 	        	command.add(imagePatternProperty.get());
 	        	command.add("-s");
-	        	command.add("hd1080");
+	        	command.add(videoResolutionWidthProperty.get() + "x" + videoResolutionHeightProperty.get());
 	        	command.add("-vf");
 	        	command.add("framerate=fps=30:interp_start=0:interp_end=255:scene=100");        	
 	        	command.add("-vcodec");
@@ -248,7 +249,7 @@ public class TimelapseApp extends Application {
         Bindings.bindBidirectional(textField.textProperty(), property, format);
         gridPane.add(textField, 1, rowIndex);
 	}
-	
+
 	private void addDirectoryChooser(GridPane gridPane, int rowIndex, String label, StringProperty directoryProperty) {
         gridPane.add(new Text(label), 0, rowIndex);
 
