@@ -20,8 +20,10 @@ import ch.obermuhlner.timelapse.CommandExecutor.CommandExecutorListener;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.Property;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
@@ -32,6 +34,7 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.RadioButton;
 import javafx.scene.control.Tab;
@@ -60,6 +63,10 @@ public class TimelapseApp extends Application {
 	private IntegerProperty imageStartNumberProperty = new SimpleIntegerProperty();
 	private StringProperty videoFileNameProperty = new SimpleStringProperty("output.mp4");
 	private IntegerProperty videoRateProperty = new SimpleIntegerProperty(1);
+
+	private BooleanProperty filterCrossFadeProperty = new SimpleBooleanProperty(true);
+	private IntegerProperty crossFadeFrameRateProperty = new SimpleIntegerProperty(30);
+	
 	private StringProperty videoResolutionProperty = new SimpleStringProperty();
 	private IntegerProperty videoResolutionWidthProperty = new SimpleIntegerProperty(1920);
 	private IntegerProperty videoResolutionHeightProperty = new SimpleIntegerProperty(1080);
@@ -125,6 +132,9 @@ public class TimelapseApp extends Application {
         
         int rowIndex = 0;
 
+        addCheckBox(gridPane, rowIndex++, "Interpolate between frames", filterCrossFadeProperty);
+        TextField rateTextField = addTextField(gridPane, rowIndex++, "Interpolated Frame Rate", crossFadeFrameRateProperty, INTEGER_FORMAT);
+        rateTextField.disableProperty().bind(filterCrossFadeProperty.not());
         
         return gridPane;
 	}
@@ -200,15 +210,17 @@ public class TimelapseApp extends Application {
 	        	command.add(imagePatternProperty.get());
 	        	command.add("-s");
 	        	command.add(videoResolutionWidthProperty.get() + "x" + videoResolutionHeightProperty.get());
-	        	command.add("-vf");
-	        	command.add("framerate=fps=30:interp_start=0:interp_end=255:scene=100");        	
+	        	if (filterCrossFadeProperty.get()) {
+	        		command.add("-vf");
+	        		command.add("framerate=fps=" + crossFadeFrameRateProperty.get() + ":interp_start=0:interp_end=255:scene=100");        	
+	        	}
 	        	command.add("-vcodec");
 	        	command.add("mpeg4");
 	        	command.add("-q:v");
 	        	command.add("1");
 	        	command.add(videoFileNameProperty.get());
 	
-	        	commandProperty.set(command.toString());
+	        	commandProperty.set(commandToString(command));
 	        	
 	        	commandOutputTextArea.setText("");
 	        	runButton.setDisable(true);
@@ -243,6 +255,26 @@ public class TimelapseApp extends Application {
         }
         
         return gridPane;
+	}
+
+	private String commandToString(List<String> command) {
+		StringBuilder result = new StringBuilder();
+		
+		for (String string : command) {
+			if (result.length() != 0) {
+				result.append(' ');
+			}
+			
+			if (string.contains(" ") || string.isEmpty()) {
+				result.append('"');
+				result.append(string);
+				result.append('"');
+			} else {
+				result.append(string);
+			}
+		}
+		
+		return result.toString();
 	}
 
 	private void updateImageDirectory() {
@@ -283,6 +315,13 @@ public class TimelapseApp extends Application {
         TextField textField = new TextField();
         Bindings.bindBidirectional(textField.textProperty(), stringProperty);
         gridPane.add(textField, 1, rowIndex);
+	}
+
+	private void addCheckBox(GridPane gridPane, int rowIndex, String label, BooleanProperty booleanProperty) {
+
+        CheckBox checkBox = new CheckBox(label);
+        Bindings.bindBidirectional(checkBox.selectedProperty(), booleanProperty);
+        gridPane.add(checkBox, 1, rowIndex);
 	}
 
 	private void addLabel(GridPane gridPane, int rowIndex, String label, StringProperty stringProperty) {
