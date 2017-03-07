@@ -2,9 +2,11 @@ package ch.obermuhlner.timelapse;
 
 import java.awt.Desktop;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -43,6 +45,7 @@ import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
@@ -112,11 +115,16 @@ public class TimelapseApp extends Application {
         gridPane.setVgap(GRID_GAP);
         
         int rowIndex = 0;
-        addDirectoryChooser(gridPane, rowIndex++, "Image Directory", imageDirectoryProperty);
-        addTextField(gridPane, rowIndex++, "Image Pattern", imagePatternProperty);
-        addTextField(gridPane, rowIndex++, "Image Start Number", imageStartNumberProperty, INTEGER_FORMAT);
+		addDirectoryChooser(gridPane, rowIndex++, "Image Directory", imageDirectoryProperty)
+				.setTooltip(new Tooltip("Select the directory containing your images to convert into a video."));
+        addTextField(gridPane, rowIndex++, "Image Pattern", imagePatternProperty)
+				.setTooltip(new Tooltip("The common pattern of the images. Will be filled automatically from the first image file in the directory."));
+        addTextField(gridPane, rowIndex++, "Image Start Number", imageStartNumberProperty, INTEGER_FORMAT)
+        		.setTooltip(new Tooltip("The number of the first image to be used in the video. Will be filled automatically from the first image file in the directory."));
         TextArea infoTextArea = addTextArea(gridPane, rowIndex++, "Input Info", inputValidationMessage, 1);
         infoTextArea.setEditable(false);
+		infoTextArea.setTooltip(new Tooltip("Information about the specified image directory."));
+
         addTextField(gridPane, rowIndex++, "Image Frame Rate", imagesFrameRateProperty, INTEGER_FORMAT);
 
         imageDirectoryProperty.addListener(changeEvent -> {
@@ -300,21 +308,27 @@ public class TimelapseApp extends Application {
 			if (lowestNumber != null) {
 				imagePatternProperty.set(filePattern);
 				imageStartNumberProperty.set(lowestNumber);
-				inputValidationMessage.set(imageCount + " images found.");
+				inputValidationMessage.set(imageCount + " images found in directory.");
+			} else {
+				inputValidationMessage.set("No images found in directory.");
 			}
 		} catch (NotDirectoryException e) {
 			inputValidationMessage.set("Not a directory: " + directoryPath);
+		} catch (NoSuchFileException e) {
+			inputValidationMessage.set("Directory not found: " + e.getMessage());
 		} catch (IOException e) {
-			inputValidationMessage.set("Failed to read directory: " + e.getMessage());
+			inputValidationMessage.set("Directory could not be read: " + e.getMessage());
 		}
 	}
 
-	private void addTextField(GridPane gridPane, int rowIndex, String label, StringProperty stringProperty) {
+	private TextField addTextField(GridPane gridPane, int rowIndex, String label, StringProperty stringProperty) {
         gridPane.add(new Text(label), 0, rowIndex);
 
         TextField textField = new TextField();
         Bindings.bindBidirectional(textField.textProperty(), stringProperty);
         gridPane.add(textField, 1, rowIndex);
+        
+        return textField;
 	}
 
 	private void addCheckBox(GridPane gridPane, int rowIndex, String label, BooleanProperty booleanProperty) {
@@ -394,7 +408,7 @@ public class TimelapseApp extends Application {
         return textField;
 	}
 
-	private void addDirectoryChooser(GridPane gridPane, int rowIndex, String label, StringProperty directoryProperty) {
+	private TextField addDirectoryChooser(GridPane gridPane, int rowIndex, String label, StringProperty directoryProperty) {
         gridPane.add(new Text(label), 0, rowIndex);
 
         BorderPane borderPane = new BorderPane();
@@ -414,6 +428,8 @@ public class TimelapseApp extends Application {
             	directoryProperty.set(selectedDirectory.getAbsolutePath());
             }
         });
+        
+        return textField;
 	}
 
 	private void addTopLabel(GridPane gridPane, int rowIndex, String label) {
