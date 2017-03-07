@@ -137,10 +137,11 @@ public class TimelapseApp extends Application {
         addTextField(gridPane, rowIndex++, "Output Video File", videoFileNameProperty);
         addTextField(gridPane, rowIndex++, "Frame Rate", videoRateProperty, INTEGER_FORMAT);
         addRadioToggleGroup(gridPane, rowIndex++, "Video Resolution", videoResolutionProperty, 
-        		"Full HD (1900x1080)",
+        		"Full HD (1920x1080)",
+        		"HD (1366x768)",
         		"Quad HD (2560x1440)",
         		"4K Ultra HD (3840x2160)",
-        		"HD (1280x720)",
+        		"WXGA (1280x720)",
         		"XGA (1024x768)", 
         		"SVGA (800x600)", 
         		"VGA (640x480)", 
