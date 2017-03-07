@@ -26,6 +26,8 @@ import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
+import javafx.geometry.Insets;
+import javafx.geometry.VPos;
 import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -104,7 +106,8 @@ public class TimelapseApp extends Application {
         addDirectoryChooser(gridPane, rowIndex++, "Image Directory", imageDirectoryProperty);
         addTextField(gridPane, rowIndex++, "Image Pattern", imagePatternProperty);
         addTextField(gridPane, rowIndex++, "Image Start Number", imageStartNumberProperty, INTEGER_FORMAT);
-        addLabel(gridPane, rowIndex++, "Input Info", inputValidationMessage);
+        TextArea infoTextArea = addTextArea(gridPane, rowIndex++, "Input Info", inputValidationMessage, 1);
+        infoTextArea.setEditable(false);
 
         imageDirectoryProperty.addListener(changeEvent -> {
         	updateImageDirectory();
@@ -280,7 +283,7 @@ public class TimelapseApp extends Application {
 	}
 
 	private TextArea addTextArea(GridPane gridPane, int rowIndex, String label, StringProperty stringProperty, int rowCount) {
-        gridPane.add(new Text(label), 0, rowIndex);
+        addTopLabel(gridPane, rowIndex, label);
 
         TextArea textArea = new TextArea();
         textArea.setPrefRowCount(rowCount);
@@ -310,7 +313,7 @@ public class TimelapseApp extends Application {
 	}
 
 	private void addRadioToggleGroup(GridPane gridPane, int rowIndex, String label, StringProperty property, String... values) {
-        gridPane.add(new Text(label), 0, rowIndex);
+		addTopLabel(gridPane, rowIndex, label);
         
         ToggleGroup toggleGroup = new ToggleGroup();
         VBox box = new VBox();
@@ -361,6 +364,13 @@ public class TimelapseApp extends Application {
             	directoryProperty.set(selectedDirectory.getAbsolutePath());
             }
         });
+	}
+
+	private void addTopLabel(GridPane gridPane, int rowIndex, String label) {
+		Text labelText = new Text(label);
+		gridPane.add(labelText, 0, rowIndex);
+		GridPane.setMargin(labelText, new Insets(4));
+		GridPane.setValignment(labelText, VPos.TOP);
 	}
 
 	private void runCommand(List<String> command, String directory, Consumer<String> outputConsumer, Consumer<Boolean> finishedConsumer) {
