@@ -49,6 +49,8 @@ import javafx.stage.Stage;
 
 public class TimelapseApp extends Application {
 
+	private static final int GRID_GAP = 4;
+
 	private static final DecimalFormat INTEGER_FORMAT = new DecimalFormat("##0");
 	
 	private static final Pattern RESOLUTION_PATTERN = Pattern.compile("([0-9]+)x([0-9]+)");
@@ -99,8 +101,8 @@ public class TimelapseApp extends Application {
 	
 	private Node createInputTab() {
         GridPane gridPane = new GridPane();
-        gridPane.setHgap(2);
-        gridPane.setVgap(2);
+        gridPane.setHgap(GRID_GAP);
+        gridPane.setVgap(GRID_GAP);
         
         int rowIndex = 0;
         addDirectoryChooser(gridPane, rowIndex++, "Image Directory", imageDirectoryProperty);
@@ -118,8 +120,8 @@ public class TimelapseApp extends Application {
 
 	private Node createFilterTab() {
         GridPane gridPane = new GridPane();
-        gridPane.setHgap(2);
-        gridPane.setVgap(2);
+        gridPane.setHgap(GRID_GAP);
+        gridPane.setVgap(GRID_GAP);
         
         int rowIndex = 0;
 
@@ -129,8 +131,8 @@ public class TimelapseApp extends Application {
 
 	private Node createOutputTab() {
         GridPane gridPane = new GridPane();
-        gridPane.setHgap(2);
-        gridPane.setVgap(2);
+        gridPane.setHgap(GRID_GAP);
+        gridPane.setVgap(GRID_GAP);
         
         int rowIndex = 0;
 
