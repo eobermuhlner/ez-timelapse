@@ -173,16 +173,13 @@ public class TimelapseApp extends Application {
 	        });
         }
         
-        addTextArea(gridPane, rowIndex++, "Command", commandProperty, 1);
-        {
-	        gridPane.add(new Text("Command Output"), 0, rowIndex);
-	
-	        commandOutputTextArea = new TextArea();
-	        commandOutputTextArea.setPrefRowCount(10);
-	        commandOutputTextArea.setScrollTop(Double.MAX_VALUE);
-	        gridPane.add(commandOutputTextArea, 1, rowIndex);
-	        rowIndex++;
-        }
+        TextArea commandTextArea = addTextArea(gridPane, rowIndex++, "Command", commandProperty, 1);
+        commandTextArea.setEditable(false);
+        
+        commandOutputTextArea = addTextArea(gridPane, rowIndex++, "Command Output", null, 1);
+        commandOutputTextArea.setEditable(false);
+        commandOutputTextArea.setPrefRowCount(10);
+        commandOutputTextArea.setScrollTop(Double.MAX_VALUE);
         
         {
 	        Button showButton = new Button("Show Video");
@@ -249,13 +246,17 @@ public class TimelapseApp extends Application {
         gridPane.add(text, 1, rowIndex);
 	}
 
-	private void addTextArea(GridPane gridPane, int rowIndex, String label, StringProperty stringProperty, int rowCount) {
+	private TextArea addTextArea(GridPane gridPane, int rowIndex, String label, StringProperty stringProperty, int rowCount) {
         gridPane.add(new Text(label), 0, rowIndex);
 
         TextArea textArea = new TextArea();
         textArea.setPrefRowCount(rowCount);
-        Bindings.bindBidirectional(textArea.textProperty(), stringProperty);
+        if (stringProperty != null) {
+        	Bindings.bindBidirectional(textArea.textProperty(), stringProperty);
+        }
         gridPane.add(textArea, 1, rowIndex);
+        
+        return textArea;
 	}
 	
 	private <T> void addTextField(GridPane gridPane, int rowIndex, String label, Property<T> property, Format format) {
