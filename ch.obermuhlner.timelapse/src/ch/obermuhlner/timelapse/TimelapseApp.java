@@ -1,5 +1,6 @@
 package ch.obermuhlner.timelapse;
 
+import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
@@ -137,7 +138,7 @@ public class TimelapseApp extends Application {
         int rowIndex = 0;
 
         {
-	        Button runButton = new Button("Run");
+	        Button runButton = new Button("Create Video");
 	        gridPane.add(runButton, 1, rowIndex++);
 	        
 	        runButton.addEventHandler(ActionEvent.ACTION, event -> {
@@ -162,6 +163,7 @@ public class TimelapseApp extends Application {
 	
 	        	commandProperty.set(command.toString());
 	        	
+	        	commandOutputTextArea.setText("");
 	        	runButton.setDisable(true);
 	        	runCommand(
 					command,
@@ -180,6 +182,20 @@ public class TimelapseApp extends Application {
 	        commandOutputTextArea.setScrollTop(Double.MAX_VALUE);
 	        gridPane.add(commandOutputTextArea, 1, rowIndex);
 	        rowIndex++;
+        }
+        
+        {
+	        Button showButton = new Button("Show Video");
+	        gridPane.add(showButton, 1, rowIndex++);
+	        
+	        showButton.addEventHandler(ActionEvent.ACTION, event -> {
+	        	try {
+					File videoFile = Paths.get(imageDirectoryProperty.get(), videoFileNameProperty.get()).toFile();
+					Desktop.getDesktop().open(videoFile);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+	        });        	
         }
         
         return gridPane;
