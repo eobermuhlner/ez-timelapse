@@ -13,6 +13,8 @@ import java.text.Format;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import ch.obermuhlner.timelapse.CommandExecutor.CommandExecutorListener;
 import javafx.application.Application;
@@ -28,13 +30,17 @@ import javafx.scene.Group;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TabPane.TabClosingPolicy;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -42,12 +48,15 @@ import javafx.stage.Stage;
 public class TimelapseApp extends Application {
 
 	private static final DecimalFormat INTEGER_FORMAT = new DecimalFormat("##0");
+	
+	private static final Pattern RESOLUTION_PATTERN = Pattern.compile("([0-9]+)x([0-9]+)");
 
 	private StringProperty imageDirectoryProperty = new SimpleStringProperty();
 	private StringProperty imagePatternProperty = new SimpleStringProperty();
 	private IntegerProperty imageStartNumberProperty = new SimpleIntegerProperty();
 	private StringProperty videoFileNameProperty = new SimpleStringProperty("output.mp4");
 	private IntegerProperty videoRateProperty = new SimpleIntegerProperty(1);
+	private StringProperty videoResolutionProperty = new SimpleStringProperty();
 	private IntegerProperty videoResolutionWidthProperty = new SimpleIntegerProperty(1920);
 	private IntegerProperty videoResolutionHeightProperty = new SimpleIntegerProperty(1080);
 
@@ -124,10 +133,34 @@ public class TimelapseApp extends Application {
 
         addTextField(gridPane, rowIndex++, "Output Video File", videoFileNameProperty);
         addTextField(gridPane, rowIndex++, "Frame Rate", videoRateProperty, INTEGER_FORMAT);
-        addTextField(gridPane, rowIndex++, "Video Width", videoResolutionWidthProperty, INTEGER_FORMAT);
-        addTextField(gridPane, rowIndex++, "Video Height", videoResolutionHeightProperty, INTEGER_FORMAT);
+        addRadioToggleGroup(gridPane, rowIndex++, "Video Resolution", videoResolutionProperty, "Full HD (1900x1080)", "VGA (800x600)", "Custom");
+        TextField widthTextField = addTextField(gridPane, rowIndex++, "Video Width", videoResolutionWidthProperty, INTEGER_FORMAT);
+        TextField heightTextField = addTextField(gridPane, rowIndex++, "Video Height", videoResolutionHeightProperty, INTEGER_FORMAT);
+        
+        updateVideoResolution(widthTextField, heightTextField);
+        videoResolutionProperty.addListener((observable, oldValue, newValue) -> {
+        	updateVideoResolution(widthTextField, heightTextField);
+        });
 
         return gridPane;
+	}
+
+	private void updateVideoResolution(TextField widthTextField, TextField heightTextField) {
+		String resolution = videoResolutionProperty.get();
+		
+		if ("Custom".equals(resolution)) {
+			widthTextField.setDisable(false);
+			heightTextField.setDisable(false);
+		} else {
+			Matcher matcher = RESOLUTION_PATTERN.matcher(resolution);
+			if (matcher.find()) {
+				videoResolutionWidthProperty.set(Integer.parseInt(matcher.group(1)));
+				videoResolutionHeightProperty.set(Integer.parseInt(matcher.group(2)));
+			}
+			
+			widthTextField.setDisable(true);
+			heightTextField.setDisable(true);
+		}
 	}
 
 	private Node createCreateTab() {
@@ -258,13 +291,54 @@ public class TimelapseApp extends Application {
         
         return textArea;
 	}
+
+	private <T> ComboBox<T> addComboBox(GridPane gridPane, int rowIndex, String label, Property<T> property, @SuppressWarnings("unchecked") T... values) {
+        gridPane.add(new Text(label), 0, rowIndex);
+
+        ComboBox<T> comboBox = new ComboBox<>();
+        comboBox.getItems().addAll(values);
+        Bindings.bindBidirectional(comboBox.valueProperty(), property);
+        comboBox.valueProperty().set(values[0]);
+        
+        gridPane.add(comboBox, 1, rowIndex);
+
+        comboBox.setOnMouseEntered(event -> {
+            comboBox.requestFocus();
+        });
+        
+        return comboBox;
+	}
+
+	private void addRadioToggleGroup(GridPane gridPane, int rowIndex, String label, StringProperty property, String... values) {
+        gridPane.add(new Text(label), 0, rowIndex);
+        
+        ToggleGroup toggleGroup = new ToggleGroup();
+        VBox box = new VBox();
+        
+		for (String value : values) {
+			RadioButton button = new RadioButton(value);
+			box.getChildren().add(button);
+			button.setToggleGroup(toggleGroup);
+			button.setSelected(value.equals(values[0]));
+			button.setOnAction(event -> {
+				property.set(value);
+			});
+		}
+		
+		property.set(values[0]);
+        
+        gridPane.add(box, 1, rowIndex);
+
+	}
 	
-	private <T> void addTextField(GridPane gridPane, int rowIndex, String label, Property<T> property, Format format) {
+	private <T> TextField addTextField(GridPane gridPane, int rowIndex, String label, Property<T> property, Format format) {
         gridPane.add(new Text(label), 0, rowIndex);
 
         TextField textField = new TextField();
         Bindings.bindBidirectional(textField.textProperty(), property, format);
         gridPane.add(textField, 1, rowIndex);
+        
+        return textField;
 	}
 
 	private void addDirectoryChooser(GridPane gridPane, int rowIndex, String label, StringProperty directoryProperty) {
