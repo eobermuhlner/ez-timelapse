@@ -25,7 +25,9 @@ public class CommandExecutor {
 	public void run() {
 		try {
 			ProcessBuilder processBuilder = new ProcessBuilder(command);
-			processBuilder.directory(new File(directory));
+			if (directory != null) {
+				processBuilder.directory(new File(directory));
+			}
 			
 			Process process = processBuilder.start();
 			
