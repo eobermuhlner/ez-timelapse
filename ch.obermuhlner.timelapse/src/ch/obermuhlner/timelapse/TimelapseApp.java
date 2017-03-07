@@ -62,10 +62,10 @@ public class TimelapseApp extends Application {
 	private StringProperty imagePatternProperty = new SimpleStringProperty();
 	private IntegerProperty imageStartNumberProperty = new SimpleIntegerProperty();
 	private StringProperty videoFileNameProperty = new SimpleStringProperty("output.mp4");
-	private IntegerProperty videoRateProperty = new SimpleIntegerProperty(1);
+	private IntegerProperty imagesFrameRateProperty = new SimpleIntegerProperty(1);
 
-	private BooleanProperty filterCrossFadeProperty = new SimpleBooleanProperty(true);
-	private IntegerProperty crossFadeFrameRateProperty = new SimpleIntegerProperty(30);
+	private BooleanProperty useInterpolatedFilterProperty = new SimpleBooleanProperty(true);
+	private IntegerProperty interpolatedFrameRateProperty = new SimpleIntegerProperty(30);
 	
 	private StringProperty videoResolutionProperty = new SimpleStringProperty();
 	private IntegerProperty videoResolutionWidthProperty = new SimpleIntegerProperty(1920);
@@ -117,6 +117,7 @@ public class TimelapseApp extends Application {
         addTextField(gridPane, rowIndex++, "Image Start Number", imageStartNumberProperty, INTEGER_FORMAT);
         TextArea infoTextArea = addTextArea(gridPane, rowIndex++, "Input Info", inputValidationMessage, 1);
         infoTextArea.setEditable(false);
+        addTextField(gridPane, rowIndex++, "Image Frame Rate", imagesFrameRateProperty, INTEGER_FORMAT);
 
         imageDirectoryProperty.addListener(changeEvent -> {
         	updateImageDirectory();
@@ -132,9 +133,9 @@ public class TimelapseApp extends Application {
         
         int rowIndex = 0;
 
-        addCheckBox(gridPane, rowIndex++, "Interpolate between frames", filterCrossFadeProperty);
-        TextField rateTextField = addTextField(gridPane, rowIndex++, "Interpolated Frame Rate", crossFadeFrameRateProperty, INTEGER_FORMAT);
-        rateTextField.disableProperty().bind(filterCrossFadeProperty.not());
+        addCheckBox(gridPane, rowIndex++, "Interpolate between frames", useInterpolatedFilterProperty);
+        TextField rateTextField = addTextField(gridPane, rowIndex++, "Interpolated Frame Rate", interpolatedFrameRateProperty, INTEGER_FORMAT);
+        rateTextField.disableProperty().bind(useInterpolatedFilterProperty.not());
         
         return gridPane;
 	}
@@ -147,7 +148,6 @@ public class TimelapseApp extends Application {
         int rowIndex = 0;
 
         addTextField(gridPane, rowIndex++, "Output Video File", videoFileNameProperty);
-        addTextField(gridPane, rowIndex++, "Frame Rate", videoRateProperty, INTEGER_FORMAT);
         addRadioToggleGroup(gridPane, rowIndex++, "Video Resolution", videoResolutionProperty, 
         		"Full HD (1920x1080)",
         		"HD (1366x768)",
@@ -203,16 +203,16 @@ public class TimelapseApp extends Application {
 	        	command.add("ffmpeg");
 	        	command.add("-y");
 	        	command.add("-r");
-	        	command.add(String.valueOf(videoRateProperty.get()));
+	        	command.add(String.valueOf(imagesFrameRateProperty.get()));
 	        	command.add("-start_number");
 	        	command.add(String.valueOf(imageStartNumberProperty.get()));
 	        	command.add("-i");
 	        	command.add(imagePatternProperty.get());
 	        	command.add("-s");
 	        	command.add(videoResolutionWidthProperty.get() + "x" + videoResolutionHeightProperty.get());
-	        	if (filterCrossFadeProperty.get()) {
+	        	if (useInterpolatedFilterProperty.get()) {
 	        		command.add("-vf");
-	        		command.add("framerate=fps=" + crossFadeFrameRateProperty.get() + ":interp_start=0:interp_end=255:scene=100");        	
+	        		command.add("framerate=fps=" + interpolatedFrameRateProperty.get() + ":interp_start=0:interp_end=255:scene=100");        	
 	        	}
 	        	command.add("-vcodec");
 	        	command.add("mpeg4");
@@ -419,7 +419,7 @@ public class TimelapseApp extends Application {
 	private void addTopLabel(GridPane gridPane, int rowIndex, String label) {
 		Text labelText = new Text(label);
 		gridPane.add(labelText, 0, rowIndex);
-		GridPane.setMargin(labelText, new Insets(4));
+		GridPane.setMargin(labelText, new Insets(4, 0, 4, 0));
 		GridPane.setValignment(labelText, VPos.TOP);
 	}
 
