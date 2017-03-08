@@ -160,7 +160,7 @@ public class TimelapseApp extends Application {
 
         addTextField(gridPane, rowIndex++, "Output Video File", videoFileNameProperty)
         	.setTooltip(new Tooltip("The name of the video file to create."));
-        addRadioToggleGroup(gridPane, rowIndex++, "Video Resolution", videoResolutionProperty, 
+        addComboBox(gridPane, rowIndex++, "Video Resolution", videoResolutionProperty, 
         		"Full HD (1920x1080)",
         		"HD (1366x768)",
         		"Quad HD (2560x1440)",
@@ -480,6 +480,7 @@ public class TimelapseApp extends Application {
 	}
 	
 	public static void main(String[] args) {
+		System.setProperty("glass.accessible.force", "false");
 		launch(args);
 	}
 }
