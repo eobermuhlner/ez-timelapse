@@ -2,7 +2,6 @@ package ch.obermuhlner.timelapse;
 
 import java.awt.Desktop;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -73,6 +72,7 @@ public class TimelapseApp extends Application {
 	private StringProperty videoResolutionProperty = new SimpleStringProperty();
 	private IntegerProperty videoResolutionWidthProperty = new SimpleIntegerProperty(1920);
 	private IntegerProperty videoResolutionHeightProperty = new SimpleIntegerProperty(1080);
+	private IntegerProperty videoQualityProperty = new SimpleIntegerProperty(1);
 
 	private StringProperty inputValidationMessage = new SimpleStringProperty();
 	
@@ -171,9 +171,12 @@ public class TimelapseApp extends Application {
         		"VGA (640x480)", 
         		"Custom");
         TextField widthTextField = addTextField(gridPane, rowIndex++, "Video Width", videoResolutionWidthProperty, INTEGER_FORMAT);
-        widthTextField.setTooltip(new Tooltip("The width in pixels of the created video."));
+        widthTextField.setTooltip(new Tooltip("Width in pixels of the created video."));
         TextField heightTextField = addTextField(gridPane, rowIndex++, "Video Height", videoResolutionHeightProperty, INTEGER_FORMAT);
-        heightTextField.setTooltip(new Tooltip("The height in pixels of the created video."));
+        heightTextField.setTooltip(new Tooltip("Height in pixels of the created video."));
+
+        addTextField(gridPane, rowIndex++, "Video Quality", videoQualityProperty, INTEGER_FORMAT)
+        	.setTooltip(new Tooltip("Quality of the created video.\n\n1 is high quality."));
         
         updateVideoResolution(widthTextField, heightTextField);
         videoResolutionProperty.addListener((observable, oldValue, newValue) -> {
@@ -232,7 +235,7 @@ public class TimelapseApp extends Application {
 	        	command.add("-vcodec");
 	        	command.add("mpeg4");
 	        	command.add("-q:v");
-	        	command.add("1");
+	        	command.add(String.valueOf(videoQualityProperty.get()));
 	        	command.add(videoFileNameProperty.get());
 	
 	        	commandProperty.set(commandToString(command));
@@ -248,17 +251,18 @@ public class TimelapseApp extends Application {
         }
         
         TextArea commandTextArea = addTextArea(gridPane, rowIndex++, "Command", commandProperty, 1);
-        commandTextArea.setTooltip(new Tooltip("The command that creates the video."));
+        commandTextArea.setTooltip(new Tooltip("The generated command that is executed to create the video."));
         commandTextArea.setEditable(false);
         
         commandOutputTextArea = addTextArea(gridPane, rowIndex++, "Command Output", null, 1);
-        commandOutputTextArea.setTooltip(new Tooltip("The output of the command that creates the video."));
+        commandOutputTextArea.setTooltip(new Tooltip("Output of the command creating the video."));
         commandOutputTextArea.setEditable(false);
         commandOutputTextArea.setPrefRowCount(10);
         commandOutputTextArea.setScrollTop(Double.MAX_VALUE);
         
         {
 	        Button showButton = new Button("Show Video");
+	        showButton.setTooltip(new Tooltip("Shows the created video (if an appropriate player is found)."));
 	        gridPane.add(showButton, 1, rowIndex++);
 	        
 	        showButton.addEventHandler(ActionEvent.ACTION, event -> {
