@@ -118,14 +118,15 @@ public class TimelapseApp extends Application {
 		addDirectoryChooser(gridPane, rowIndex++, "Image Directory", imageDirectoryProperty)
 				.setTooltip(new Tooltip("Select the directory containing your images to convert into a video."));
         addTextField(gridPane, rowIndex++, "Image Pattern", imagePatternProperty)
-				.setTooltip(new Tooltip("The common pattern of the images. Will be filled automatically from the first image file in the directory."));
+				.setTooltip(new Tooltip("The common pattern of the images.\n\nWill be filled automatically from the first image file in the directory."));
         addTextField(gridPane, rowIndex++, "Image Start Number", imageStartNumberProperty, INTEGER_FORMAT)
-        		.setTooltip(new Tooltip("The number of the first image to be used in the video. Will be filled automatically from the first image file in the directory."));
+        		.setTooltip(new Tooltip("The number of the first image to be used in the video.\n\nWill be filled automatically from the first image file in the directory."));
         TextArea infoTextArea = addTextArea(gridPane, rowIndex++, "Input Info", inputValidationMessage, 1);
         infoTextArea.setEditable(false);
 		infoTextArea.setTooltip(new Tooltip("Information about the specified image directory."));
 
-        addTextField(gridPane, rowIndex++, "Image Frame Rate", imagesFrameRateProperty, INTEGER_FORMAT);
+        addTextField(gridPane, rowIndex++, "Image Frame Rate", imagesFrameRateProperty, INTEGER_FORMAT)
+        		.setTooltip(new Tooltip("Frame rate (in frames per second) at which the images are shown in the video."));
 
         imageDirectoryProperty.addListener(changeEvent -> {
         	updateImageDirectory();
@@ -141,9 +142,11 @@ public class TimelapseApp extends Application {
         
         int rowIndex = 0;
 
-        addCheckBox(gridPane, rowIndex++, "Interpolate between frames", useInterpolatedFilterProperty);
+        addCheckBox(gridPane, rowIndex++, "Interpolate between frames", useInterpolatedFilterProperty)
+        	.setTooltip(new Tooltip("Check to make a smooth transition between the images."));
         TextField rateTextField = addTextField(gridPane, rowIndex++, "Interpolated Frame Rate", interpolatedFrameRateProperty, INTEGER_FORMAT);
         rateTextField.disableProperty().bind(useInterpolatedFilterProperty.not());
+    	rateTextField.setTooltip(new Tooltip("Frame rate (in frames per second) after the interpolation between images.\n\nMaximum useful value is 30."));
         
         return gridPane;
 	}
@@ -155,7 +158,8 @@ public class TimelapseApp extends Application {
         
         int rowIndex = 0;
 
-        addTextField(gridPane, rowIndex++, "Output Video File", videoFileNameProperty);
+        addTextField(gridPane, rowIndex++, "Output Video File", videoFileNameProperty)
+        	.setTooltip(new Tooltip("The name of the video file to create."));
         addRadioToggleGroup(gridPane, rowIndex++, "Video Resolution", videoResolutionProperty, 
         		"Full HD (1920x1080)",
         		"HD (1366x768)",
@@ -167,7 +171,9 @@ public class TimelapseApp extends Application {
         		"VGA (640x480)", 
         		"Custom");
         TextField widthTextField = addTextField(gridPane, rowIndex++, "Video Width", videoResolutionWidthProperty, INTEGER_FORMAT);
+        widthTextField.setTooltip(new Tooltip("The width in pixels of the created video."));
         TextField heightTextField = addTextField(gridPane, rowIndex++, "Video Height", videoResolutionHeightProperty, INTEGER_FORMAT);
+        heightTextField.setTooltip(new Tooltip("The width in pixels of the created video."));
         
         updateVideoResolution(widthTextField, heightTextField);
         videoResolutionProperty.addListener((observable, oldValue, newValue) -> {
@@ -204,6 +210,7 @@ public class TimelapseApp extends Application {
 
         {
 	        Button runButton = new Button("Create Video");
+	        runButton.setTooltip(new Tooltip("Creates the video according to the specified parameters."));
 	        gridPane.add(runButton, 1, rowIndex++);
 	        
 	        runButton.addEventHandler(ActionEvent.ACTION, event -> {
@@ -241,9 +248,11 @@ public class TimelapseApp extends Application {
         }
         
         TextArea commandTextArea = addTextArea(gridPane, rowIndex++, "Command", commandProperty, 1);
+        commandTextArea.setTooltip(new Tooltip("The command that creates the video."));
         commandTextArea.setEditable(false);
         
         commandOutputTextArea = addTextArea(gridPane, rowIndex++, "Command Output", null, 1);
+        commandOutputTextArea.setTooltip(new Tooltip("The output of the command that creates the video."));
         commandOutputTextArea.setEditable(false);
         commandOutputTextArea.setPrefRowCount(10);
         commandOutputTextArea.setScrollTop(Double.MAX_VALUE);
@@ -331,11 +340,13 @@ public class TimelapseApp extends Application {
         return textField;
 	}
 
-	private void addCheckBox(GridPane gridPane, int rowIndex, String label, BooleanProperty booleanProperty) {
+	private CheckBox addCheckBox(GridPane gridPane, int rowIndex, String label, BooleanProperty booleanProperty) {
 
         CheckBox checkBox = new CheckBox(label);
         Bindings.bindBidirectional(checkBox.selectedProperty(), booleanProperty);
         gridPane.add(checkBox, 1, rowIndex);
+        
+        return checkBox;
 	}
 
 	private void addLabel(GridPane gridPane, int rowIndex, String label, StringProperty stringProperty) {
