@@ -173,7 +173,7 @@ public class TimelapseApp extends Application {
         TextField widthTextField = addTextField(gridPane, rowIndex++, "Video Width", videoResolutionWidthProperty, INTEGER_FORMAT);
         widthTextField.setTooltip(new Tooltip("The width in pixels of the created video."));
         TextField heightTextField = addTextField(gridPane, rowIndex++, "Video Height", videoResolutionHeightProperty, INTEGER_FORMAT);
-        heightTextField.setTooltip(new Tooltip("The width in pixels of the created video."));
+        heightTextField.setTooltip(new Tooltip("The height in pixels of the created video."));
         
         updateVideoResolution(widthTextField, heightTextField);
         videoResolutionProperty.addListener((observable, oldValue, newValue) -> {
