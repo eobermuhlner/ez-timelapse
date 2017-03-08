@@ -61,6 +61,7 @@ public class TimelapseApp extends Application {
 	private static final Pattern RESOLUTION_PATTERN = Pattern.compile("([0-9]+)x([0-9]+)");
 
 	private StringProperty imageDirectoryProperty = new SimpleStringProperty();
+	private BooleanProperty imageAutoFillProperty = new SimpleBooleanProperty(true);
 	private StringProperty imagePatternProperty = new SimpleStringProperty();
 	private IntegerProperty imageStartNumberProperty = new SimpleIntegerProperty();
 	private StringProperty videoFileNameProperty = new SimpleStringProperty("output.mp4");
@@ -115,12 +116,21 @@ public class TimelapseApp extends Application {
         gridPane.setVgap(GRID_GAP);
         
         int rowIndex = 0;
-		addDirectoryChooser(gridPane, rowIndex++, "Image Directory", imageDirectoryProperty)
+		
+        addDirectoryChooser(gridPane, rowIndex++, "Image Directory", imageDirectoryProperty)
 				.setTooltip(new Tooltip("Select the directory containing your images to convert into a video."));
-        addTextField(gridPane, rowIndex++, "Image Pattern", imagePatternProperty)
-				.setTooltip(new Tooltip("The common pattern of the images.\n\nWill be filled automatically from the first image file in the directory."));
-        addTextField(gridPane, rowIndex++, "Image Start Number", imageStartNumberProperty, INTEGER_FORMAT)
-        		.setTooltip(new Tooltip("The number of the first image to be used in the video.\n\nWill be filled automatically from the first image file in the directory."));
+		
+		addCheckBox(gridPane, rowIndex++, "Auto Pattern From Directory", imageAutoFillProperty)
+				.setTooltip(new Tooltip("Enable automatic pattern and start number from directory."));
+        
+		TextField imagePatternTextField = addTextField(gridPane, rowIndex++, "Image Pattern", imagePatternProperty);
+        imagePatternTextField.setTooltip(new Tooltip("The common pattern of the images.\n\nWill be filled automatically from the first image file in the directory."));
+        imagePatternTextField.disableProperty().bind(imageAutoFillProperty);
+        
+        TextField startNumberTextField = addTextField(gridPane, rowIndex++, "Image Start Number", imageStartNumberProperty, INTEGER_FORMAT);
+        startNumberTextField.setTooltip(new Tooltip("The number of the first image to be used in the video.\n\nWill be filled automatically from the first image file in the directory."));
+        startNumberTextField.disableProperty().bind(imageAutoFillProperty);
+        
         TextArea infoTextArea = addTextArea(gridPane, rowIndex++, "Input Info", inputValidationMessage, 1);
         infoTextArea.setEditable(false);
 		infoTextArea.setTooltip(new Tooltip("Information about the specified image directory."));
@@ -128,6 +138,9 @@ public class TimelapseApp extends Application {
         addTextField(gridPane, rowIndex++, "Image Frame Rate", imagesFrameRateProperty, INTEGER_FORMAT)
         		.setTooltip(new Tooltip("Frame rate (in frames per second) at which the images are shown in the video."));
 
+        imageAutoFillProperty.addListener(changeEvent -> {
+       		updateImageDirectory();
+        });
         imageDirectoryProperty.addListener(changeEvent -> {
         	updateImageDirectory();
         });
@@ -299,7 +312,12 @@ public class TimelapseApp extends Application {
 	}
 
 	private void updateImageDirectory() {
-		Path directoryPath = Paths.get(imageDirectoryProperty.get());
+		String directory = imageDirectoryProperty.get();
+		if (directory == null) {
+			return;
+		}
+		
+		Path directoryPath = Paths.get(directory);
 		Integer lowestNumber = null;
 		String filePattern = null;
 		int imageCount = 0;
@@ -319,8 +337,10 @@ public class TimelapseApp extends Application {
 			}
 			
 			if (lowestNumber != null) {
-				imagePatternProperty.set(filePattern);
-				imageStartNumberProperty.set(lowestNumber);
+				if (imageAutoFillProperty.get()) {
+					imagePatternProperty.set(filePattern);
+					imageStartNumberProperty.set(lowestNumber);
+				}
 				inputValidationMessage.set(imageCount + " images found in directory.");
 			} else {
 				inputValidationMessage.set("No images found in directory.");
