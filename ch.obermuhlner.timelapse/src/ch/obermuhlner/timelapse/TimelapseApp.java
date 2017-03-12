@@ -45,6 +45,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.VBox;
@@ -117,9 +118,28 @@ public class TimelapseApp extends Application {
         
         int rowIndex = 0;
 		
-        addDirectoryChooser(gridPane, rowIndex++, "Image Directory", imageDirectoryProperty)
-				.setTooltip(new Tooltip("Select the directory containing your images to convert into a video."));
-		
+        TextField directoryChooserTextField = addDirectoryChooser(gridPane, rowIndex++, "Image Directory", imageDirectoryProperty);
+        directoryChooserTextField.setTooltip(new Tooltip("Select the directory containing your images to convert into a video."));
+        directoryChooserTextField.setPromptText("Type or drag directory here");
+		directoryChooserTextField.setOnDragOver(event -> {
+			if (event.getGestureSource() != directoryChooserTextField && event.getDragboard().hasFiles()) {
+				event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
+			}
+			event.consume();
+		});
+		directoryChooserTextField.setOnDragDropped(event -> {
+			List<File> files = event.getDragboard().getFiles();
+			File firstFile = files.get(0);
+			if (firstFile.isFile()) {
+				firstFile = firstFile.getParentFile();
+			}
+			if (firstFile != null) {
+				imageDirectoryProperty.set(firstFile.toPath().toString());
+				event.setDropCompleted(true);
+			}
+			event.consume();
+		});
+        
 		addCheckBox(gridPane, rowIndex++, "Auto Pattern From Directory", imageAutoFillProperty)
 				.setTooltip(new Tooltip("Enable automatic pattern and start number from directory."));
         
