@@ -108,12 +108,21 @@ public class TimelapseApp extends Application {
         TabPane tabPane = new TabPane();
         tabPane.setTabClosingPolicy(TabClosingPolicy.UNAVAILABLE);
 
-    	tabPane.getTabs().add(new Tab("Images", createInputTab()));
-    	tabPane.getTabs().add(new Tab("Filter", createFilterTab()));
-    	tabPane.getTabs().add(new Tab("Video", createOutputTab()));
-    	tabPane.getTabs().add(new Tab("Create", createCreateTab()));
+    	tabPane.getTabs().add(new Tab("Images", createBorder(createInputTab())));
+    	tabPane.getTabs().add(new Tab("Filter", createBorder(createFilterTab())));
+    	tabPane.getTabs().add(new Tab("Video", createBorder(createOutputTab())));
+    	tabPane.getTabs().add(new Tab("Create", createBorder(createCreateTab())));
 
         return tabPane;
+	}
+
+	private Node createBorder(Node node) {
+		BorderPane borderPane = new BorderPane();
+		borderPane.setPadding(new Insets(4));
+		
+        borderPane.setCenter(node);
+
+		return borderPane;
 	}
 	
 	private Node createInputTab() {
@@ -125,7 +134,7 @@ public class TimelapseApp extends Application {
 		
         TextField directoryChooserTextField = addDirectoryChooser(gridPane, rowIndex++, "Image Directory", imageDirectoryProperty);
         directoryChooserTextField.setTooltip(new Tooltip("Select the directory containing your images to convert into a video."));
-        directoryChooserTextField.setPromptText("Type or drag directory here");
+        directoryChooserTextField.setPromptText("Enter or drag directory here");
 		directoryChooserTextField.setOnDragOver(event -> {
 			if (event.getGestureSource() != directoryChooserTextField && event.getDragboard().hasFiles()) {
 				event.acceptTransferModes(TransferMode.COPY_OR_MOVE);
