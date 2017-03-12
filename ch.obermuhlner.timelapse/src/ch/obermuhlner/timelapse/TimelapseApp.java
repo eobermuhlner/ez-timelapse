@@ -3,7 +3,6 @@ package ch.obermuhlner.timelapse;
 import java.awt.Desktop;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.NotDirectoryException;
@@ -12,10 +11,14 @@ import java.nio.file.Paths;
 import java.text.DecimalFormat;
 import java.text.Format;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import ch.obermuhlner.timelapse.CommandExecutor.CommandExecutorListener;
 import javafx.application.Application;
@@ -364,45 +367,76 @@ public class TimelapseApp extends Application {
 		}
 		
 		Path directoryPath = Paths.get(directory);
-		Integer lowestNumber = null;
-		String filePattern = null;
-		int imageCount = 0;
-		
-		try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(directoryPath, "*.jpg")) {
-			for (Path filePath : directoryStream) {
-				ImageFilenameParser parser = new ImageFilenameParser(filePath.getFileName().toString());
-				if (parser.isValid()) {
-					if (lowestNumber == null || parser.getNumber() < lowestNumber) {
-						lowestNumber = parser.getNumber();
-						filePattern = parser.getFilePattern();
-					}
-					if (parser.getFilePattern().equals(filePattern)) {
-						imageCount++;
-					}
-				}
-			}
+		try {
+			Optional<Entry<String, List<ImageFilenameParser>>> optionalParsers = Files.list(directoryPath)
+				.filter(Files::isReadable)
+				.filter(path -> isImageFile(path))
+				.map(path -> new ImageFilenameParser(path.getFileName().toString()))
+				.filter(parser -> parser.isValid())
+				.collect(Collectors.groupingBy(parser -> parser.getFilePattern()))
+				.entrySet().stream()
+				.sorted((entry1, entry2) -> -Integer.compare(entry1.getValue().size(), entry2.getValue().size()))
+				.findFirst();
 			
-			if (lowestNumber != null) {
+			if (optionalParsers.isPresent()) {
+				List<ImageFilenameParser> parsers = optionalParsers.get().getValue();
+				
+				ImageFilenameParser firstParser = parsers.get(0);
+				
+				List<Integer> sortedNumbers = parsers.stream()
+						.map(parser -> parser.getNumber())
+						.sorted()
+						.collect(Collectors.toList());
+				
+				int firstNumber = sortedNumbers.get(0);
+				int lastNumber = findLastConsecutiveNumber(sortedNumbers);
+				int countNumbers = lastNumber - firstNumber;
+				
 				if (imageAutoFillProperty.get()) {
-					imagePatternProperty.set(filePattern);
-					imageStartNumberProperty.set(lowestNumber);
+					imagePatternProperty.set(firstParser.getFilePattern());
+					imageStartNumberProperty.set(firstNumber);
 				}
-				inputValidationMessage.set(imageCount + " images found in directory.");
+				
+				inputValidationMessage.set(countNumbers + " images found in directory, starting at number " + firstNumber + ".");
 			} else {
 				inputValidationMessage.set("No images found in directory.");
 			}
 		} catch (NotDirectoryException e) {
-			inputValidationMessage.set("Not a directory: " + directoryPath);
+			inputValidationMessage.set("Not a directory.");
 		} catch (NoSuchFileException e) {
-			inputValidationMessage.set("Directory not found: " + e.getMessage());
+			inputValidationMessage.set("Directory not found.");
 		} catch (IOException e) {
-			inputValidationMessage.set("Directory could not be read: " + e.getMessage());
+			inputValidationMessage.set("Directory could not be read.");
 		}
 	}
 	
+	private int findLastConsecutiveNumber(List<Integer> sortedNumbers) {
+		int number = sortedNumbers.get(0);
+		
+		while (sortedNumbers.contains(number)) {
+			number++;
+		}
+		
+		return number;
+	}
+
+	private boolean isImageFile(Path path) {
+		String string = path.getFileName().toString();
+		for (String extension : Arrays.asList(".jpg", ".JPG", ".jpeg", ".png", ".PNG")) {
+			if (string.endsWith(extension)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private void updateImage() {
-		Path path = Paths.get(imageDirectoryProperty.get(), String.format(imagePatternProperty.get(), imageStartNumberProperty.get()));
+		if (imagePatternProperty.get() == null) {
+			return;
+
+		}
 		try {
+			Path path = Paths.get(imageDirectoryProperty.get(), String.format(imagePatternProperty.get(), imageStartNumberProperty.get()));
 			Image image = new Image(path.toUri().toString());
 			imageProperty.set(image);
 		} catch (IllegalArgumentException ex) {
