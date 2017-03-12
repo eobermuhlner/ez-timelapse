@@ -23,9 +23,11 @@ import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.Property;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.event.ActionEvent;
@@ -45,6 +47,8 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleGroup;
 import javafx.scene.control.Tooltip;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
@@ -67,6 +71,7 @@ public class TimelapseApp extends Application {
 	private IntegerProperty imageStartNumberProperty = new SimpleIntegerProperty();
 	private StringProperty videoFileNameProperty = new SimpleStringProperty("output.mp4");
 	private IntegerProperty imagesFrameRateProperty = new SimpleIntegerProperty(1);
+	private ObjectProperty<Image> imageProperty = new SimpleObjectProperty<>();
 
 	private BooleanProperty useInterpolatedFilterProperty = new SimpleBooleanProperty(true);
 	private IntegerProperty interpolatedFrameRateProperty = new SimpleIntegerProperty(30);
@@ -157,12 +162,24 @@ public class TimelapseApp extends Application {
 
         addTextField(gridPane, rowIndex++, "Image Frame Rate", imagesFrameRateProperty, INTEGER_FORMAT)
         		.setTooltip(new Tooltip("Frame rate (in frames per second) at which the images are shown in the video."));
+        
+        ImageView imageView = addImageView(gridPane, rowIndex++, "Image", imageProperty);
+        imageView.setFitWidth(512);
+        imageView.setFitHeight(512);
+        imageView.setPreserveRatio(true);
 
         imageAutoFillProperty.addListener(changeEvent -> {
        		updateImageDirectory();
         });
         imageDirectoryProperty.addListener(changeEvent -> {
         	updateImageDirectory();
+        	updateImage();
+        });
+        imagePatternProperty.addListener(changeEvent -> {
+        	updateImage();
+        });
+        imageStartNumberProperty.addListener(changeEvent -> {
+        	updateImage();
         });
         
 		return gridPane;
@@ -373,6 +390,16 @@ public class TimelapseApp extends Application {
 			inputValidationMessage.set("Directory could not be read: " + e.getMessage());
 		}
 	}
+	
+	private void updateImage() {
+		Path path = Paths.get(imageDirectoryProperty.get(), String.format(imagePatternProperty.get(), imageStartNumberProperty.get()));
+		try {
+			Image image = new Image(path.toUri().toString());
+			imageProperty.set(image);
+		} catch (IllegalArgumentException ex) {
+			imageProperty.set(null);
+		}
+	}
 
 	private TextField addTextField(GridPane gridPane, int rowIndex, String label, StringProperty stringProperty) {
         gridPane.add(new Text(label), 0, rowIndex);
@@ -412,6 +439,16 @@ public class TimelapseApp extends Application {
         gridPane.add(textArea, 1, rowIndex);
         
         return textArea;
+	}
+
+	private ImageView addImageView(GridPane gridPane, int rowIndex, String label, ObjectProperty<Image> imageProperty) {
+        addTopLabel(gridPane, rowIndex, label);
+
+        ImageView imageView = new ImageView();
+    	Bindings.bindBidirectional(imageView.imageProperty(), imageProperty);
+        gridPane.add(imageView, 1, rowIndex);
+        
+        return imageView;
 	}
 
 	private <T> ComboBox<T> addComboBox(GridPane gridPane, int rowIndex, String label, Property<T> property, @SuppressWarnings("unchecked") T... values) {
