@@ -78,6 +78,8 @@ public class TimelapseApp extends Application {
 
 	private BooleanProperty useInterpolatedFilterProperty = new SimpleBooleanProperty(true);
 	private IntegerProperty interpolatedFrameRateProperty = new SimpleIntegerProperty(30);
+	private IntegerProperty interpolatedStartProperty = new SimpleIntegerProperty(0);
+	private IntegerProperty interpolatedEndProperty = new SimpleIntegerProperty(255);
 	
 	private StringProperty videoResolutionProperty = new SimpleStringProperty();
 	private IntegerProperty videoResolutionWidthProperty = new SimpleIntegerProperty(1920);
@@ -206,10 +208,17 @@ public class TimelapseApp extends Application {
 
         addCheckBox(gridPane, rowIndex++, "Interpolate between frames", useInterpolatedFilterProperty)
         	.setTooltip(new Tooltip("Check to make a smooth transition between the images."));
+        
         TextField rateTextField = addTextField(gridPane, rowIndex++, "Interpolated Frame Rate", interpolatedFrameRateProperty, INTEGER_FORMAT);
         rateTextField.disableProperty().bind(useInterpolatedFilterProperty.not());
     	rateTextField.setTooltip(new Tooltip("Frame rate (in frames per second) after the interpolation between images.\n\nMaximum useful value is 30."));
-        
+
+        TextField startTextField = addTextField(gridPane, rowIndex++, "Interpolation Start", interpolatedStartProperty, INTEGER_FORMAT);
+        startTextField.disableProperty().bind(useInterpolatedFilterProperty.not());
+
+        TextField endTextField = addTextField(gridPane, rowIndex++, "Interpolation End", interpolatedEndProperty, INTEGER_FORMAT);
+        endTextField.disableProperty().bind(useInterpolatedFilterProperty.not());
+
         return gridPane;
 	}
 
@@ -301,7 +310,7 @@ public class TimelapseApp extends Application {
         	command.add(videoResolutionWidthProperty.get() + "x" + videoResolutionHeightProperty.get());
         	if (useInterpolatedFilterProperty.get()) {
         		command.add("-vf");
-        		command.add("framerate=fps=" + interpolatedFrameRateProperty.get() + ":interp_start=0:interp_end=255:scene=100");        	
+	        	command.add("framerate=fps=" + interpolatedFrameRateProperty.get() + ":interp_start=" + interpolatedStartProperty.get() + ":interp_end=" + interpolatedEndProperty.get() + ":scene=100");        	
         	}
         	command.add("-vcodec");
         	command.add("mpeg4");
