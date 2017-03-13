@@ -273,70 +273,68 @@ public class TimelapseApp extends Application {
         
         int rowIndex = 0;
 
-        {
-	        Button runButton = new Button("Create Video");
-	        runButton.setTooltip(new Tooltip("Creates the video according to the specified parameters."));
-	        gridPane.add(runButton, 1, rowIndex++);
-	        
-	        runButton.addEventHandler(ActionEvent.ACTION, event -> {
-	        	List<String> command = new ArrayList<>();
-	        	command.add("ffmpeg");
-	        	command.add("-y");
-	        	command.add("-r");
-	        	command.add(String.valueOf(imagesFrameRateProperty.get()));
-	        	command.add("-start_number");
-	        	command.add(String.valueOf(imageStartNumberProperty.get()));
-	        	command.add("-i");
-	        	command.add(imagePatternProperty.get());
-	        	command.add("-s");
-	        	command.add(videoResolutionWidthProperty.get() + "x" + videoResolutionHeightProperty.get());
-	        	if (useInterpolatedFilterProperty.get()) {
-	        		command.add("-vf");
-	        		command.add("framerate=fps=" + interpolatedFrameRateProperty.get() + ":interp_start=0:interp_end=255:scene=100");        	
-	        	}
-	        	command.add("-vcodec");
-	        	command.add("mpeg4");
-	        	command.add("-q:v");
-	        	command.add(String.valueOf(videoQualityProperty.get()));
-	        	command.add(videoFileNameProperty.get());
-	
-	        	commandProperty.set(commandToString(command));
-	        	
-	        	commandOutputTextArea.setText("");
-	        	runButton.setDisable(true);
-	        	runCommand(
-					command,
-					imageDirectoryProperty.get(),
-					(output) -> commandOutputTextArea.appendText(output),
-					(success) -> runButton.setDisable(false));
-	        });
-        }
-        
-        TextArea commandTextArea = addTextArea(gridPane, rowIndex++, "Command", commandProperty, 1);
-        commandTextArea.setTooltip(new Tooltip("The generated command that is executed to create the video."));
-        commandTextArea.setEditable(false);
+        Button runButton = new Button("Create Video");
+        runButton.setTooltip(new Tooltip("Creates the video according to the specified parameters."));
+        gridPane.add(runButton, 1, rowIndex++);
         
         commandOutputTextArea = addTextArea(gridPane, rowIndex++, "Command Output", null, 1);
         commandOutputTextArea.setTooltip(new Tooltip("Output of the command creating the video."));
         commandOutputTextArea.setEditable(false);
-        commandOutputTextArea.setPrefRowCount(10);
+        commandOutputTextArea.setPrefRowCount(25);
         commandOutputTextArea.setScrollTop(Double.MAX_VALUE);
         
-        {
-	        Button showButton = new Button("Show Video");
-	        showButton.setTooltip(new Tooltip("Shows the created video (if an appropriate player is found)."));
-	        gridPane.add(showButton, 1, rowIndex++);
+        Button showButton = new Button("Show Video");
+        showButton.setTooltip(new Tooltip("Shows the created video (if an appropriate player is found)."));
+        gridPane.add(showButton, 1, rowIndex++);
 	        
-	        showButton.addEventHandler(ActionEvent.ACTION, event -> {
-	        	try {
-					File videoFile = Paths.get(imageDirectoryProperty.get(), videoFileNameProperty.get()).toFile();
-					Desktop.getDesktop().open(videoFile);
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-	        });        	
-        }
-        
+        runButton.addEventHandler(ActionEvent.ACTION, event -> {
+        	List<String> command = new ArrayList<>();
+        	command.add("ffmpeg");
+        	command.add("-y");
+        	command.add("-r");
+        	command.add(String.valueOf(imagesFrameRateProperty.get()));
+        	command.add("-start_number");
+        	command.add(String.valueOf(imageStartNumberProperty.get()));
+        	command.add("-i");
+        	command.add(imagePatternProperty.get());
+        	command.add("-s");
+        	command.add(videoResolutionWidthProperty.get() + "x" + videoResolutionHeightProperty.get());
+        	if (useInterpolatedFilterProperty.get()) {
+        		command.add("-vf");
+        		command.add("framerate=fps=" + interpolatedFrameRateProperty.get() + ":interp_start=0:interp_end=255:scene=100");        	
+        	}
+        	command.add("-vcodec");
+        	command.add("mpeg4");
+        	command.add("-q:v");
+        	command.add(String.valueOf(videoQualityProperty.get()));
+        	command.add(videoFileNameProperty.get());
+
+        	commandOutputTextArea.setText("> ");
+        	commandOutputTextArea.appendText(commandToString(command));
+        	commandOutputTextArea.appendText("\n\n");
+        	
+        	runButton.setDisable(true);
+        	showButton.setDisable(true);
+        	
+        	runCommand(
+				command,
+				imageDirectoryProperty.get(),
+				(output) -> commandOutputTextArea.appendText(output),
+				(success) -> {
+					runButton.setDisable(false);
+		        	showButton.setDisable(false);
+				});
+        });
+
+        showButton.addEventHandler(ActionEvent.ACTION, event -> {
+        	try {
+				File videoFile = Paths.get(imageDirectoryProperty.get(), videoFileNameProperty.get()).toFile();
+				Desktop.getDesktop().open(videoFile);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+        });        	
+
         return gridPane;
 	}
 
